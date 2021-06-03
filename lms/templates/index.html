@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="jumbotron">
+        <h1 class="display-4">{% if current_user.is_authenticated %}
+                Welcome {{current_user.name}}{% if current_user.isLibrarian %}
+                                (Librarian)
+                {% endif %}
+                
+        </h1>
+        <hr class="my-4">
+        {% if current_user.active_issues %}
+                        Below are your books issued.
+        {% else %}
+                        Books you issue will appear here.
+        {% endif %}
+        {% if current_user.isLibrarian %}
+                       <br> All active issues are listed here.
+        {% endif %}
+        
+        {%else%}
+        <h1 class="display-4">Welcome to Library Management System</h1>
+        <hr class="my-4">
+        <p class="lead">This is the CS 207 Database Management System created by Dipin Garg, Harsh Kushwaha and Jainil
+                Shah. <br>With this project
+                we hope to ease up this difficult process of managing a library for both librarian and users.</p>
+
+        {% endif %}
+
+</div>
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+{% for category, message in messages %}
+<div class="alert alert-{{category}}">{{ message }}</div>
+{% endfor %}
+{% endif %}
+{% endwith %}
+<div class="container">{% if current_user.is_authenticated %}
+{% if current_user.isLibrarian %}
+{% for issue in allIssues %}
+{% if issue.dueDate<issue.dueDate.now() %}
+        {% if issue.lastEmailSent and issue.lastEmailSent+fifteendays<issue.dueDate.now() %}
+                        <div class="alert alert-warning">It has been 15 days since you last sent email.</div>
+        {% else %}
+                        <div class="alert alert-warning">You have not sent an email for the due book.</div>
+        {% endif %}
+        
+{% endif %}
+
+        <div class="list-group-item list-group-item-action d-flex flex-row align-items-center">
+                <div>
+                        <img src="{{issue.bookIssued.url}}" class="img-thumbnail" style="max-height: 200px; max-width: 200px;">
+                </div>
+                <div class="flex-column p-4">
+                        <h5>{{issue.bookIssued.name}}{% if issue.dueDate<issue.dueDate.now() %} <span class="text-danger">
+                                        OVERDUE! Charge Rs. {{issue.fine}}</span>
+                                        {% endif %}
+                        </h5>
+                        <p>by {{ issue.bookIssued.authors|join(', ') }} <br> <small>{{issue.bookIssued.year}}</small></p>
+                        <h6>Rating: {{issue.bookIssued.avg_rating}}</h6>
+                        <h6>Due date: {{issue.dueDate.strftime('%I:%M %p, %d %b %Y')}}</h6>
+                        <h6>Issued by: {{issue.user.name}}</h6>
+                        <h6>Last email sent: {% if issue.lastEmailSent %}
+                                        {{issue.lastEmailSent.strftime('%I:%M %p, %d %b %Y')}}
+                        {% else %}
+                                        Never
+                        {% endif %}
+                        </h6>
+
+
+                </div>
+                <a href="{{url_for('books.send_email',issue_id=issue.id)}}" type="button" class="btn btn-primary">Send Email</a>
+                <a href="{{url_for('books.return_book',issue_id=issue.id)}}" type="button"
+                        class="btn btn-danger">Return Book</a>
+                {% if issue.bookIssued.isbn not in current_user.reading_list_ids %}
+                <a href="{{url_for('books.add_to_reading_list',book_id=issue.bookIssued.isbn)}}" type="button"
+                        class="btn btn-primary">Add
+                        to reading list</a>
+                {% else %}
+                <a href="{{url_for('books.remove_from_reading_list',book_id=issue.bookIssued.isbn)}}" type="button"
+                        class="btn btn-danger">Remove from reading list</a>
+                {% endif%}
+                
+        
+        
+        
+        </div>
+{% endfor %}
+ 
+{% else %}
+                {% for issue in current_user.active_issues %}
+                
+                <div class="list-group-item list-group-item-action d-flex flex-row align-items-center">
+                        <div>
+                                <img src="{{issue.bookIssued.url}}" class="img-thumbnail" style="max-height: 200px; max-width: 200px;">
+                        </div>
+                        <div class="flex-column p-4">
+                                <h5>{{issue.bookIssued.name}}{% if issue.dueDate<issue.dueDate.now() %} <span class="text-danger">
+                                                OVERDUE!</span>
+                                                {% endif %}
+                                </h5>
+                                <p>by {{ issue.bookIssued.authors|join(', ') }} <br> <small>{{issue.bookIssued.year}}</small></p>
+                                <h6>Rating: {{issue.bookIssued.avg_rating}}</h6>
+                        <h6>Due date: {{issue.dueDate.strftime('%I:%M %p, %d %b %Y')}}</h6>
+
+                        </div>
+                        {% if issue.bookIssued.isbn not in current_user.reading_list_ids %}
+                        <a href="{{url_for('books.add_to_reading_list',book_id=issue.bookIssued.isbn)}}" type="button"
+                                class="btn btn-primary">Add
+                                to reading list</a>
+                        {% else %}
+                        <a href="{{url_for('books.remove_from_reading_list',book_id=issue.bookIssued.isbn)}}" type="button"
+                                class="btn btn-danger">Remove from reading list</a>
+                        {% endif%}
+                
+                
+                
+                </div>
+                
+                {% endfor %}
+                {% endif %}
+                {% if current_user.holding %}
+                <h2>Books you've held.</h2>
+                {% endif %}
+                
+                {% for book in current_user.holding %}
+                
+                <div class="list-group-item list-group-item-action d-flex flex-row align-items-center">
+                        <div>
+                                <img src="{{book.url}}" class="img-thumbnail" style="max-height: 200px; max-width: 200px;">
+                        </div>
+                        <div class="flex-column p-4">
+                                <h5>{{book.name}}
+                                </h5>
+                                <p>by {{ book.authors|join(', ') }} <br> <small>{{book.year}}</small></p>
+                                <h6>Rating: {{book.avg_rating}}</h6>
+                        </div>
+                        <a href="{{url_for('books.remove_hold_book',book_id=book.isbn)}}" type="button" class="btn btn-danger">Remove
+                                Hold</a>
+                
+                        {% if book.isbn not in current_user.reading_list_ids %}
+                        <a href="{{url_for('books.add_to_reading_list',book_id=book.isbn)}}" type="button" class="btn btn-primary">Add
+                                to reading list</a>
+                        {% else %}
+                        <a href="{{url_for('books.remove_from_reading_list',book_id=book.isbn)}}" type="button"
+                                class="btn btn-danger">Remove from reading list</a>
+                        {% endif%}
+                
+                
+                
+                </div>
+                
+                {% endfor %}
+
+        <div class="p-5 text-center bg-light">
+                <a class="btn btn-primary" href="{{url_for("books.all_books")}}" role="button">Browse catalogue</a>
+                <br>
+                <br>
+                <a class="btn btn-primary" href="{{url_for("books.my_books")}}" role="button">My booklist</a>
+                <br>
+                <br>
+                <a class="btn btn-primary" href="{{url_for("friends.all_following")}}" role="button">My Friends</a>
+                <br>
+                <br>
+                <!-- <a class="btn btn-primary" href="Book requests.html" role="button">My book requests</a> -->
+        </div>
+        {% endif %}
+
+</div>
+{% endblock %}

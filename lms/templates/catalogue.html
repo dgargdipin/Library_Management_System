@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{category}}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+<div class="jumbotron">
+  <h1 class="display-4">The Library!</h1>
+  <p class="lead">Access all of our catalogue</p>
+  <hr class="my-4">
+  <p>You can view all the books the library has to offer!</p>
+  
+{% if current_user.isLibrarian %}
+
+<a  type="button" class="btn btn-info" data-toggle="modal" data-target="#addBook">Add Book</a>
+<a  type="button" class="btn btn-info" data-toggle="modal" data-target="#newShelf">Add shelf</a>
+
+{% endif %}
+</div>
+
+{% if suggested_books %}
+<h1 class="display-3">Suggested Books</h1>
+
+    {% for book in suggested_books %}
+        {% if book not in current_user.books_issued %}
+            
+        
+<div class="list-group-item list-group-item-action d-flex flex-row align-items-center">
+    <div>
+        <img src="{{book.url}}"
+            class="img-thumbnail" style="max-height: 200px; max-width: 200px;">
+    </div>
+    <div class="flex-column p-4">
+        <h5>{{book.name}}</h5>
+        <p>by {{ book.authors|join(', ') }} <br> <small>{{book.year}}</small></p>
+        <h6>Rating: {{book.avg_rating}}</h6>
+    </div>
+    {% if book.isbn not in current_user.reading_list_ids %}
+            <a href="{{url_for('books.add_to_reading_list',book_id=book.isbn)}}" type="button" class="btn btn-primary">Add to reading list</a>
+    {% else %}
+            <a href="{{url_for('books.remove_from_reading_list',book_id=book.isbn)}}" type="button" class="btn btn-danger">Remove from reading list</a>
+    {% endif%}
+
+    {% if book.isbn not in current_user.issued_book_ids and book.isbn not in current_user.hold_book_ids %}
+    {% if book.used<book.copies  %}
+            <a href="{{url_for('books.issue_book',book_id=book.isbn)}}" type="button" class="btn btn-primary">Issue Book</a>
+    {% else %}
+    {% if not book.holder %}
+        <a href="{{url_for('books.hold_book',book_id=book.isbn)}}" type="button" class="btn btn-primary">Hold Book</a>
+    {% endif %}
+
+    {% endif %}
+    
+
+    {% endif %}
+    
+            {# <a href="{{url_for('books.remove_from_reading_list',book_id=book.isbn)}}" type="button" class="btn btn-danger">Remove from reading list</a> #}
+
+
+    {% if book.isbn not in current_user.rated_book_ids %}
+    <a data-id={{book.isbn}} type="button" class="btn btn-info assignmentLink" data-toggle="modal"
+            data-target="#submitAssignment">Rate Book</a>
+    {% endif %}
+    <a  type="button" class="btn btn-outline-primary" data-toggle="modal" data-target={{"#viewRatings"+book.isbn|string}}>View Ratings</a>
+    <a data-id={{book.isbn}} type="button" class="btn btn-info assignmentLink" data-toggle="modal"
+            data-target="#changeShelf">Change Shelf</a>
+</div>
+
+        {% endif %}
+        
+    {% endfor %}
+    
+{% endif %}
+<h1 class="display-3">All books</h1>
+{% for book in books %}
+        
+<div class="list-group-item list-group-item-action d-flex flex-row align-items-center">
+    <div>
+        <img src="{{book.url}}"
+            class="img-thumbnail" style="max-height: 200px; max-width: 200px;">
+    </div>
+    <div class="flex-column p-4">
+        <h5>{{book.name}}</h5>
+        <p>by {{ book.authors|join(', ') }} <br> <small>{{book.year}}</small></p>
+        <h6>Rating: {{book.avg_rating}}</h6>
+    </div>
+    {% if book.isbn not in current_user.reading_list_ids %}
+            <a href="{{url_for('books.add_to_reading_list',book_id=book.isbn)}}" type="button" class="btn btn-primary">Add to reading list</a>
+    {% else %}
+            <a href="{{url_for('books.remove_from_reading_list',book_id=book.isbn)}}" type="button" class="btn btn-danger">Remove from reading list</a>
+    {% endif%}
+
+    {% if book.isbn not in current_user.issued_book_ids and book.isbn not in current_user.hold_book_ids %}
+    {% if book.used<book.copies  %}
+            <a href="{{url_for('books.issue_book',book_id=book.isbn)}}" type="button" class="btn btn-primary">Issue Book</a>
+    {% else %}
+    {% if not book.holder %}
+        <a href="{{url_for('books.hold_book',book_id=book.isbn)}}" type="button" class="btn btn-primary">Hold Book</a>
+    {% endif %}
+
+    {% endif %}
+    
+
+    {% endif %}
+    
+            {# <a href="{{url_for('books.remove_from_reading_list',book_id=book.isbn)}}" type="button" class="btn btn-danger">Remove from reading list</a> #}
+
+
+    {% if book.isbn not in current_user.rated_book_ids %}
+    <a data-id={{book.isbn}} type="button" class="btn btn-info assignmentLink" data-toggle="modal"
+            data-target="#submitAssignment">Rate Book</a>
+    {% endif %}
+    <a  type="button" class="btn btn-outline-primary" data-toggle="modal" data-target={{"#viewRatings"+book.isbn|string}}>View Ratings</a>
+    <a data-id={{book.isbn}} type="button" class="btn btn-info assignmentLink" data-toggle="modal"
+            data-target="#changeShelf">Change Shelf</a>
+</div>
+
+{% endfor %}
+
+<div class="modal fade" id="addBook" tabindex="-1" role="dialog" aria-labelledby="modelTitleId"
+    aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Book Form</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form enctype="multipart/form-data" method="POST">
+                    {{newBookForm.hidden_tag()}}
+
+
+                    <div class="form-group">
+                        {{newBookForm.name.label(class='form-group')}}
+                        {{newBookForm.name(class='form-control')}}
+                    </div>
+                    <div class="form-group">
+                        {{newBookForm.authors.label(class='form-group')}}
+                        {{newBookForm.authors(class='form-control')}}
+                    </div>
+                    <div class="form-group">
+                        {{newBookForm.isbn.label(class='form-group')}}
+                        {{newBookForm.isbn(class_='form-control')}}
+                    </div>
+                    <div class="form-group">
+                        {{newBookForm.genre.label(class='form-group')}}
+                        {{newBookForm.genre(class_='form-control')}}
+                    </div>
+                    <div class="form-group">
+                        {{newBookForm.year.label(class='form-group')}}
+                        {{newBookForm.year(class_='form-control')}}
+                    </div>
+                    <div class="form-group">
+                        {{newBookForm.url.label(class='form-group')}}
+                        {{newBookForm.url(class_='form-control')}}
+                    </div>
+                    <div class="form-group">
+                        {{newBookForm.copies.label(class='form-group')}}
+                        {{newBookForm.copies(class_='form-control')}}
+                    </div>
+                    <div class="form-group">
+                        {{newBookForm.shelf_id.label(class='form-group')}}
+                        {{newBookForm.shelf_id(class_='form-control')}}
+                    </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                {{newBookForm.submitBook(class='btn btn-primary')}}</form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# // add rating #}
+
+<div class="modal fade" id="submitAssignment" tabindex="-1" role="dialog" aria-labelledby="modelTitleId"
+  aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Submit Assignment</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form enctype="multipart/form-data" method="POST">
+          {{reviewBookForm.hidden_tag()}}
+
+
+          <div class="form-group">
+            {{reviewBookForm.rating.label(class='form-group')}}
+            {{reviewBookForm.rating(class='form-control')}}
+          </div>
+          <div class="form-group assignment">
+            {{reviewBookForm.isbn.label(class='form-group')}}
+            {{reviewBookForm.isbn(class_='form-control assignmentInput',readonly=true)}}
+          </div>
+          <div class="form-group">
+            {{reviewBookForm.review.label(class='form-group')}}
+            {{reviewBookForm.review(class='form-control')}}
+          </div>
+
+
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        {{reviewBookForm.submitRating(class='btn btn-primary')}}</form>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+{# view ratings #}
+
+{% for book in books %}
+        
+
+<div class="modal fade" id={{"viewRatings"+book.isbn|string}} tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLongTitle">Ratings for {{book.name}}</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        {% for rating in book.ratings %}
+        <blockquote class="blockquote">
+          <p>{{rating.review}}</p>
+          <h6>-{{rating.user.name}} <small class="text-muted">{{rating.rating}}/5</small></h6>
+        </blockquote>
+        <br>
+        <br>
+
+        {% endfor %}
+        
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+
+
+{# change shelf #}
+
+
+<div class="modal fade" id="changeShelf" tabindex="-1" role="dialog" aria-labelledby="modelTitleId"
+  aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Submit Assignment</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form enctype="multipart/form-data" method="POST">
+          {{changeShelfForm.hidden_tag()}}
+
+
+          <div class="form-group">
+            {{changeShelfForm.shelfid.label(class='form-group')}}
+            {{changeShelfForm.shelfid(class='form-control')}}
+          </div>
+          <div class="form-group assignment">
+            {{changeShelfForm.isbn.label(class='form-group')}}
+            {{changeShelfForm.isbn(class_='form-control assignmentInput',readonly=true)}}
+          </div>
+
+
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        {{changeShelfForm.changeShelfSubmit(class='btn btn-primary')}}</form>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+{# add shelf#}
+
+
+<div class="modal fade" id="newShelf" tabindex="-1" role="dialog" aria-labelledby="modelTitleId"
+  aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Submit Assignment</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form enctype="multipart/form-data" method="POST">
+          {{newShelfForm.hidden_tag()}}
+
+
+          <div class="form-group">
+            {{newShelfForm.shelfid.label(class='form-group')}}
+            {{newShelfForm.shelfid(class='form-control')}}
+          </div>
+          <div class="form-group">
+            {{newShelfForm.capacity.label(class='form-group')}}
+            {{newShelfForm.capacity(class_='form-control')}}
+          </div>
+
+
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        {{newShelfForm.newShelfSubmit(class='btn btn-primary')}}</form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h1 class="display-4">Shelf Details</h1>
+
+
+<div class="accordion" id="accordionExample">
+  {% for shelf in shelfs %}
+      <div class="card">
+    <div class="card-header" id="heading{{shelf.id}}">
+      <h5 class="mb-0">
+        <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapse{{shelf.id}}" aria-expanded="true" aria-controls="collapse{{shelf.id}}">
+          Shelf #{{shelf.id}} {{shelf.books|length}}/{{shelf.capacity}}
+        </button>
+      </h5>
+    </div>
+
+    <div id="collapse{{shelf.id}}" class="collapse" aria-labelledby="heading{{shelf.id}}" data-parent="#accordionExample">
+      <div class="card-body">
+        <ul class="list-group">
+          {% for book in shelf.books %}
+  <li class="list-group-item">{{book.name}}</li>
+              
+          {% endfor %}
+          
+
+</ul>
+
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+ 
+  
+</div>
+
+
+{% endblock %}}

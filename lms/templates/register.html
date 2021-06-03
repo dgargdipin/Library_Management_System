@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% macro error_field(field) %}
+{% if field.errors %}
+{% for error in field.errors %}
+<div class="alert alert-danger" role="alert">{{ error }}</div>
+{% endfor %}
+{% endif %}
+{% endmacro %}
+
+{% macro form_field2(field) -%}
+    {% set with_label = kwargs.pop('with_label', False) %}
+    {% set placeholder = '' %}
+    {% if not with_label %}
+        {% set placeholder = field.label.text %}
+    {% endif %}
+    <div class="control-group {% if field.errors %}error{% endif %}">
+        {% if with_label %}
+            <label for="{{ field.id }}" class="control-label">
+                {{ field.label.text }}{% if field.flags.required %} *{% endif %}:
+            </label>
+        {% endif %}
+        <div class="controls">
+            {% set class_ = kwargs.pop('class_', '') %}
+            {% if field.flags.required %}
+                {% set class_ = class_ + ' required' %}
+            {% endif %}
+            {% if field.type == 'BooleanField' %}
+                <label class="checkbox">
+                    {{ field(class_=class_, **kwargs) }}
+                    {{ field.label.text|safe }}
+                </label>
+            {% else %}
+                {% if field.type in ('TextField', 'TextAreaField', 'PasswordField') %}
+                    {% set class_ = class_ + ' input-xlarge' %}
+                {% elif field.type == 'FileField' %}
+                    {% set class_ = class_ + ' input-file' %}
+                {% endif %}
+                {{ field(class_=class_, placeholder=placeholder, **kwargs) }}
+            {% endif %}
+            {% if field.errors %}
+                <span class="error help-inline">{{ field.errors|join(', ') }}</span>
+            {% endif %}
+            {% if field.description %}
+                <p class="help-block">{{ field.description|safe }}</p>
+            {% endif %}
+        </div>
+    </div>
+{%- endmacro %}
+{% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class=flashes>
+    {% for category, message in messages %}
+      <li class="{{ category }}">{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+    {{error_field(form.name)}}
+    {{error_field(form.email)}}
+    {# {{error_field(form.branch)}} #}
+    {{error_field(form.password)}}
+    {{error_field(form.pass_confirm)}}
+    {{error_field(form.submit)}}
+<div class="signup-form">
+    <form method="POST" class="form-horizontal">
+        {{form.hidden_tag()}}
+        <div class="col-xs-8 col-xs-offset-4">
+            <h2>Register</h2>
+        </div>
+        <div class="form-group">
+            <label class="control-label col-xs-4">{{form.name.label}}</label>
+            <div class="col-xs-8">
+                {{form.name(class_='form-control',required="required")}}
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="control-label col-xs-4">{{form.email.label}}</label>
+            <div class="col-xs-8">
+                {{form.email(class_='form-control',required="required")}}
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="control-label col-xs-4">{{form.about.label}}</label>
+            <div class="col-xs-8">
+                {{form.about(class_='form-control',required="required")}}
+            </div>
+        </div>
+        {# <div class="form-group">
+            <label class="control-label col-xs-4" for="sel1">{{form.year.label}}</label>
+            <div class="col-xs-8">
+                {{form.year(class_='form-control',required="required")}}
+
+            </div> #}
+        {# </div> #}
+        {# <div class="form-group">
+            <label class="control-label col-xs-4" for="sel1">{{form.branch.label}}</label>
+            <div class="col-xs-8">
+                {{form.branch(class_='form-control',required="required")}}
+
+            </div> #}
+        {# </div> #}
+        <div class="form-group">
+            <label class="control-label col-xs-4">{{form.password.label}}</label>
+            <div class="col-xs-8">
+                {{form.password(class_='form-control',required="required")}}
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="control-label col-xs-4">{{form.pass_confirm.label}}</label>
+            <div class="col-xs-8">
+                {{form.pass_confirm(class_='form-control',required="required")}}
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-xs-8 col-xs-offset-4">
+                {{form.submit(class_="btn btn-primary btn-lg")}}
+            </div>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

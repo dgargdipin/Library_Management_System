@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{category}}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        <h1 class="display-4">{{friend.name}}'s Reading List</h1>
+        <p class="lead">{{friend.email}}</p>
+    </div>
+</div>
+
+{% for book in booklist %}
+
+<div class="list-group-item list-group-item-action d-flex flex-row align-items-center">
+    <div>
+        <img src="{{book.url}}"
+            class="img-thumbnail" style="max-height: 200px; max-width: 200px;">
+    </div>
+    <div class="flex-column p-4">
+        <h5>{{book.name}}</h5>
+        <p>by {{ book.authors|join(', ') }} <br> <small>{{book.year}}</small></p>
+        <h6>Rating: {{book.avg_rating}}</h6>
+    </div>
+    {% if book.isbn not in current_user.reading_list_ids %}
+    <a href="{{url_for('books.add_to_reading_list',book_id=book.isbn)}}" type="button" class="btn btn-primary">Add to
+        reading list</a>
+    {% else %}
+    <a href="{{url_for('books.remove_from_reading_list',book_id=book.isbn)}}" type="button"
+        class="btn btn-danger">Remove from reading list</a>
+
+    {% endif %}
+
+</div>
+
+{% endfor %}
+
+{% endblock %}}
